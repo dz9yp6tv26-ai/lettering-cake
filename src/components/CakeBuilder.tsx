@@ -15,9 +15,22 @@ import {
   X,
 } from "lucide-react";
 import { toPng } from "html-to-image";
+import CandleEditor from "./CandleEditor";
+import ToppingEditor from "./ToppingEditor";
+import { letteringFonts } from "@/lib/lettering-fonts";
+import {
+  letteringColors,
+  letteringPositions,
+  DEFAULT_LETTERING_COLOR,
+  DEFAULT_LETTERING_POSITION,
+} from "@/lib/lettering-style";
 import dynamic from "next/dynamic";
 import {
   MAX_STROKES,
+  defaultCandles,
+  placeTopping,
+  type CandleConfig,
+  type ToppingKind,
   presetToppings,
   serializeCake3DState,
   type Cake3DState,
@@ -37,13 +50,15 @@ import {
   initialCake,
   type Cake,
 } from "@/lib/cake";
-const tabs = ["케이크 바탕", "크림 & 토핑", "레터링"] as const;
+const tabs = ["케이크/크림", "레터링/토핑", "촛불 커스텀"] as const;
 export default function CakeBuilder() {
   const [cake, setCake] = useState<Cake>(initialCake);
   const [strokes, setStrokes] = useState<CreamStroke[]>([]);
   const [toppings, setToppings] = useState<Topping3D[]>(() =>
     presetToppings(initialCake.topping),
   );
+  const [candles, setCandles] = useState<CandleConfig>({ ...defaultCandles });
+  const [selectedToppingId, setSelectedToppingId] = useState("preset-0");
   const [mode, setMode] = useState<"rotate" | "pipe" | "place">("rotate");
   const [creamColor, setCreamColor] = useState("#fff7e3");
   const [creamRadius, setCreamRadius] = useState(0.035);
@@ -53,12 +68,16 @@ export default function CakeBuilder() {
       coordinateSystem: "cake-local-y-up",
       cake: { radius: 1, height: 0.65, color: cake.color, cream: cake.cream },
       lettering: cake.lettering,
+      letteringFont: cake.letteringFont ?? "classic",
+      letteringColor: cake.letteringColor ?? DEFAULT_LETTERING_COLOR,
+      letteringPosition: cake.letteringPosition ?? DEFAULT_LETTERING_POSITION,
       message: cake.message,
       recipient: cake.recipient,
       strokes,
       toppings,
+      candles,
     }),
-    [cake, strokes, toppings],
+    [cake, strokes, toppings, candles],
   );
   const [tab, setTab] = useState(0);
   const [open, setOpen] = useState(true);
@@ -89,13 +108,28 @@ export default function CakeBuilder() {
                 color: data.design3D.cake.color,
                 cream: data.design3D.cake.cream,
                 lettering: data.design3D.lettering,
+                letteringFont: data.design3D.letteringFont ?? "classic",
+                letteringColor:
+                  data.design3D.letteringColor ?? DEFAULT_LETTERING_COLOR,
+                letteringPosition:
+                  data.design3D.letteringPosition ?? DEFAULT_LETTERING_POSITION,
                 message: data.design3D.message,
                 recipient: data.design3D.recipient,
               }
             : data,
         );
         setStrokes(data.design3D?.strokes ?? []);
-        setToppings(data.design3D?.toppings ?? presetToppings(data.topping));
+        const restoredToppings =
+          data.design3D?.toppings ?? presetToppings(data.topping);
+        setToppings(restoredToppings);
+        setSelectedToppingId(restoredToppings[0]?.id ?? "");
+        setCandles(
+          data.design3D?.candles ??
+            data.candles ?? {
+              ...defaultCandles,
+              enabled: !data.design3D && data.topping === "candle",
+            },
+        );
         setMode("rotate");
         setReceiver(true);
         setOpen(false);
@@ -146,11 +180,66 @@ export default function CakeBuilder() {
   }, [notice]);
   function update<K extends keyof Cake>(key: K, value: Cake[K]) {
     setCake((prev) => ({ ...prev, [key]: value }));
-    if (key === "topping")
-      setToppings(presetToppings(value as Cake["topping"]));
+  }
+  function toggleFlames() {
+    if (receiver) {
+      setBlown(!blown);
+      if (candles.isLit !== blown) setNotice("소원이 이루어지길 바라요 ✨");
+    } else {
+      setCandles((c) => ({ ...c, isLit: !c.isLit }));
+      setBlown(false);
+    }
+  }
+  function chooseTopping(kind: ToppingKind) {
+    const active = toppings.find((t) => t.id === selectedToppingId);
+    if (active)
+      setToppings((previous) =>
+        previous.map((t) =>
+          t.id === selectedToppingId
+            ? { ...t, kind, position: placeTopping(kind, t.position, t.scale) }
+            : t,
+        ),
+      );
+    else {
+      const item = {
+        ...presetToppings(kind)[0],
+        id: globalThis.crypto?.randomUUID?.() ?? `topping-${Date.now()}`,
+      };
+      setToppings((previous) => [...previous, item]);
+      setSelectedToppingId(item.id);
+    }
+    setCake((previous) => ({ ...previous, topping: kind }));
+  }
+  function addTopping() {
+    if (toppings.length >= 12) return;
+    const kind =
+      toppings.find((t) => t.id === selectedToppingId)?.kind ?? "heart";
+    const angle = toppings.length * 2.4;
+    const item = {
+      ...presetToppings(kind)[0],
+      id: globalThis.crypto?.randomUUID?.() ?? `topping-${Date.now()}`,
+      position: placeTopping(kind, [
+        Math.cos(angle) * 0.5,
+        0.65,
+        Math.sin(angle) * 0.5,
+      ]),
+    };
+    setToppings((previous) => [...previous, item]);
+    setSelectedToppingId(item.id);
+    setMode("place");
+    setOpen(true);
+  }
+  function removeTopping() {
+    const remaining = toppings.filter((t) => t.id !== selectedToppingId);
+    setToppings(remaining);
+    setSelectedToppingId(remaining[0]?.id ?? "");
+    setCake((previous) => ({
+      ...previous,
+      topping: remaining[0]?.kind ?? "none",
+    }));
   }
   function finish() {
-    const link = `${window.location.origin}${window.location.pathname}#gift=${encodeURIComponent(encodeCake({ ...cake, design3D: state3D }))}`;
+    const link = `${window.location.origin}${window.location.pathname}#gift=${encodeURIComponent(encodeCake({ ...cake, candles, design3D: state3D }))}`;
     if (link.length > 8000)
       setNotice(
         "크림 궤적이 많아 링크가 길어요. 앱에 따라 공유가 제한될 수 있어요. JSON으로도 저장할 수 있어요.",
@@ -280,8 +369,13 @@ export default function CakeBuilder() {
                 }
                 onPlace={(point) =>
                   setToppings((previous) =>
-                    previous.map((t, i) =>
-                      i === 0 ? { ...t, position: point } : t,
+                    previous.map((t) =>
+                      t.id === selectedToppingId
+                        ? {
+                            ...t,
+                            position: placeTopping(t.kind, point, t.scale),
+                          }
+                        : t,
                     ),
                   )
                 }
@@ -289,10 +383,7 @@ export default function CakeBuilder() {
                 open={open}
                 blown={blown}
                 onOpen={() => setOpen(true)}
-                onBlow={() => {
-                  setBlown(!blown);
-                  if (!blown) setNotice("소원이 이루어지길 바라요 ✨");
-                }}
+                onBlow={toggleFlames}
               />
             </div>
             {!receiver && (
@@ -373,15 +464,11 @@ export default function CakeBuilder() {
                 </div>
               </div>
             )}
-            {open && toppings.some((t) => t.kind === "candle") && (
-              <button
-                className="blow-candle"
-                onClick={() => {
-                  setBlown(!blown);
-                  if (!blown) setNotice("소원이 이루어지길 바라요 ✨");
-                }}
-              >
-                {blown ? "촛불 다시 켜기" : "촛불 끄고 소원 빌기"}
+            {open && candles.enabled !== false && (
+              <button className="blow-candle" onClick={toggleFlames}>
+                {candles.isLit !== blown
+                  ? "촛불 끄고 소원 빌기"
+                  : "촛불 다시 켜기"}
               </button>
             )}
             <div className="preview-bottom">
@@ -407,7 +494,7 @@ export default function CakeBuilder() {
                 {cake.recipient ? `${cake.recipient}에게` : "소중한 당신에게"} ♡
               </h2>
               <p>{open ? cake.message : "상자를 눌러 열어 주세요."}</p>
-              {open && cake.topping === "candle" && (
+              {open && candles.enabled !== false && (
                 <p className="helper">촛불을 눌러 소원을 빌어보세요.</p>
               )}
               <a className="primary-button" href="/">
@@ -475,17 +562,6 @@ export default function CakeBuilder() {
                             </button>
                           ))}
                         </div>
-                        <div className="atelier-tip">
-                          <Sparkles size={18} />
-                          <div>
-                            <strong>조금 서툴러도 괜찮아요.</strong>
-                            <p>당신의 마음이 가장 예쁜 데코레이션이니까요.</p>
-                          </div>
-                        </div>
-                      </>
-                    )}
-                    {tab === 1 && (
-                      <>
                         <div className="field-title">
                           <h3>생크림 테두리</h3>
                           <span>달콤함을 한 겹 더</span>
@@ -512,40 +588,120 @@ export default function CakeBuilder() {
                             </button>
                           ))}
                         </div>
-                        <div className="field-title topping-title">
-                          <h3>작은 포인트</h3>
-                          <span>마지막 한 스푼의 귀여움</span>
-                        </div>
-                        <div className="choice-grid">
-                          {(
-                            [
-                              { value: "cherry", label: "🍒", name: "체리" },
-                              { value: "candle", label: "🕯️", name: "초" },
-                              { value: "heart", label: "💕", name: "하트" },
-                            ] as const
-                          ).map((x) => (
-                            <button
-                              className={
-                                cake.topping === x.value
-                                  ? "choice topping active"
-                                  : "choice topping"
-                              }
-                              key={x.value}
-                              onClick={() => {
-                                update("topping", x.value);
-                                setBlown(false);
-                              }}
-                              aria-pressed={cake.topping === x.value}
-                            >
-                              <span>{x.label}</span>
-                              {x.name}
-                            </button>
-                          ))}
+                        <div className="atelier-tip">
+                          <Sparkles size={18} />
+                          <div>
+                            <strong>조금 서툴러도 괜찮아요.</strong>
+                            <p>당신의 마음이 가장 예쁜 데코레이션이니까요.</p>
+                          </div>
                         </div>
                       </>
                     )}
                     {tab === 2 && (
+                      <CandleEditor
+                        value={candles}
+                        onChange={(value) => {
+                          setCandles(value);
+                          setBlown(false);
+                        }}
+                      />
+                    )}
+                    {tab === 1 && (
                       <>
+                        <ToppingEditor
+                          toppings={toppings}
+                          selectedId={selectedToppingId}
+                          onSelect={setSelectedToppingId}
+                          onChoose={chooseTopping}
+                          onAdd={addTopping}
+                          onRemove={removeTopping}
+                          onPlace={() => {
+                            setMode("place");
+                            setOpen(true);
+                          }}
+                        />
+                        <fieldset className="lettering-font-picker">
+                          <legend>레터링 폰트</legend>
+                          <div className="font-chips">
+                            {letteringFonts.map((font) => (
+                              <button
+                                type="button"
+                                key={font.id}
+                                aria-pressed={
+                                  (cake.letteringFont ?? "classic") === font.id
+                                }
+                                onClick={() => update("letteringFont", font.id)}
+                                style={{
+                                  fontFamily: font.family,
+                                  fontWeight: font.weight,
+                                }}
+                              >
+                                {font.label}
+                              </button>
+                            ))}
+                          </div>
+                          <p>
+                            영문 Cake 폰트 · Pacifico / Fredoka / Cherry Swash /
+                            Shrikhand
+                            <br />
+                            한글은 나눔손글씨 펜 서체로 입체 표현됩니다.
+                          </p>
+                        </fieldset>
+                        <fieldset className="lettering-style-picker">
+                          <legend>입체 글자 색상</legend>
+                          <div className="lettering-color-grid">
+                            {letteringColors.map((color) => (
+                              <button
+                                type="button"
+                                key={color.value}
+                                aria-label={`레터링 ${color.name}`}
+                                aria-pressed={
+                                  (cake.letteringColor ??
+                                    DEFAULT_LETTERING_COLOR) === color.value
+                                }
+                                onClick={() =>
+                                  update("letteringColor", color.value)
+                                }
+                              >
+                                <span
+                                  className="lettering-color-swatch"
+                                  style={{ background: color.value }}
+                                >
+                                  {(cake.letteringColor ??
+                                    DEFAULT_LETTERING_COLOR) ===
+                                    color.value && <Check size={18} />}
+                                </span>
+                                <span>{color.name}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </fieldset>
+                        <fieldset className="lettering-style-picker">
+                          <legend>글자 위치</legend>
+                          <div className="lettering-placement-control">
+                            {letteringPositions.map((position) => (
+                              <button
+                                type="button"
+                                key={position.value}
+                                aria-pressed={
+                                  (cake.letteringPosition ??
+                                    DEFAULT_LETTERING_POSITION) ===
+                                  position.value
+                                }
+                                onClick={() =>
+                                  update("letteringPosition", position.value)
+                                }
+                              >
+                                {position.label}
+                              </button>
+                            ))}
+                          </div>
+                          <p>
+                            회전 모드에서 각도를 바꾸면 입체 글자와 측면 배치를
+                            더 잘 볼 수 있어요. 테두리와 판에서는 줄바꿈이
+                            공백으로 이어집니다.
+                          </p>
+                        </fieldset>
                         <label className="input-label" htmlFor="lettering">
                           케이크 위 레터링{" "}
                           <span>{cake.lettering.length}/30</span>

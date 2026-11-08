@@ -15,12 +15,15 @@ import {
 } from "@react-three/fiber";
 import { OrbitControls, RoundedBox } from "@react-three/drei";
 import * as THREE from "three";
+import Lettering3D from "./Lettering3D";
+import ToppingMesh from "./ToppingMeshes";
+import Candles3D from "./Candles3D";
+import { letteringFont, type LetteringFont } from "@/lib/lettering-fonts";
 import {
   MAX_POINTS,
   MAX_STROKES,
   type Cake3DState,
   type CreamStroke,
-  type Topping3D,
   type Vec3,
 } from "@/lib/cake3d";
 export type CakeViewer3DProps = {
@@ -55,30 +58,86 @@ class WebGLBoundary extends Component<
     );
   }
 }
-function useLabelTexture(text: string, ink: string, size: number) {
+function useLabelTexture(
+  text: string,
+  ink: string,
+  size: number,
+  fontId: LetteringFont = "classic",
+) {
   const texture = useMemo(() => {
     const canvas = document.createElement("canvas");
     canvas.width = 1024;
     canvas.height = 512;
-    const ctx = canvas.getContext("2d")!;
-    ctx.clearRect(0, 0, 1024, 512);
-    ctx.fillStyle = ink;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.font = `italic ${size}px Georgia, "Malgun Gothic", sans-serif`;
-    const lines = text.split("\n").slice(0, 4);
-    lines.forEach((line, i) =>
-      ctx.fillText(
-        line,
-        512,
-        256 + (i - (lines.length - 1) / 2) * (size + 10),
-        940,
-      ),
-    );
     const map = new THREE.CanvasTexture(canvas);
     map.colorSpace = THREE.SRGBColorSpace;
     return map;
-  }, [text, ink, size]);
+  }, []);
+  useEffect(() => {
+    let cancelled = false;
+    const canvas = texture.image as HTMLCanvasElement;
+    const ctx = canvas.getContext("2d")!;
+    const selected = letteringFont(fontId);
+    const family = `${getComputedStyle(document.body).getPropertyValue(selected.variable).trim().split(",")[0]}, "Malgun Gothic", sans-serif`;
+    const descriptor = (px: number) =>
+      `${selected.style} ${selected.weight} ${px}px ${family}`;
+    function draw() {
+      if (cancelled) return;
+      const lines = text.split("\n");
+      let px = size;
+      let ascent = 0,
+        descent = 0,
+        lineHeight = 0;
+      // Fit with real glyph bounds, including swashes and descenders. Never squeeze only X.
+      for (let pass = 0; pass < 5; pass++) {
+        ctx.font = descriptor(px);
+        ctx.letterSpacing = `${px * selected.spacing}px`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "alphabetic";
+        const metrics = lines.map((line) => ctx.measureText(line || "Mg"));
+        ascent = Math.max(
+          ...metrics.map((m) => m.actualBoundingBoxAscent),
+          px * 0.7,
+        );
+        descent = Math.max(
+          ...metrics.map((m) => m.actualBoundingBoxDescent),
+          px * 0.2,
+        );
+        lineHeight = ascent + descent + px * 0.16;
+        const width = Math.max(
+          1,
+          ...metrics.map((m) =>
+            Math.max(
+              m.width,
+              2 * m.actualBoundingBoxLeft,
+              2 * m.actualBoundingBoxRight,
+            ),
+          ),
+        );
+        const height = ascent + descent + (lines.length - 1) * lineHeight;
+        const scale = Math.min(1, 920 / width, 416 / height);
+        if (scale >= 0.999) break;
+        px *= scale;
+      }
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = ink;
+      const height = ascent + descent + (lines.length - 1) * lineHeight;
+      lines.forEach((line, i) =>
+        ctx.fillText(line, 512, (512 - height) / 2 + ascent + i * lineHeight),
+      );
+      texture.needsUpdate = true;
+    }
+    draw();
+    // CanvasTexture does not repaint itself when a webfont finishes loading.
+    document.fonts
+      .load(descriptor(size), "Happy birthday")
+      .then(draw)
+      .catch(() => {
+        /* Keep the readable system fallback. */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [texture, text, ink, size, fontId]);
   useEffect(() => () => texture.dispose(), [texture]);
   return texture;
 }
@@ -89,6 +148,7 @@ function Label({
   height,
   ink,
   size = 90,
+  fontId = "classic",
 }: {
   text: string;
   position: Vec3;
@@ -96,8 +156,9 @@ function Label({
   height: number;
   ink: string;
   size?: number;
+  fontId?: LetteringFont;
 }) {
-  const map = useLabelTexture(text, ink, size);
+  const map = useLabelTexture(text, ink, size, fontId);
   return (
     <mesh position={position} rotation={[-Math.PI / 2, 0, 0]}>
       <planeGeometry args={[width, height]} />
@@ -169,80 +230,6 @@ function Cream({ stroke }: { stroke: CreamStroke }) {
           <meshStandardMaterial color={stroke.color} roughness={0.73} />
         </mesh>
       ))}
-    </group>
-  );
-}
-function Topping({
-  item,
-  blown,
-  onBlow,
-}: {
-  item: Topping3D;
-  blown: boolean;
-  onBlow: () => void;
-}) {
-  return (
-    <group position={item.position} rotation={item.rotation} scale={item.scale}>
-      {item.kind === "cherry" && (
-        <>
-          {[-0.13, 0.13].map((x, i) => (
-            <group key={x}>
-              <mesh position={[x, 0.14, 0]} castShadow>
-                <sphereGeometry args={[0.15, 24, 16]} />
-                <meshStandardMaterial color="#bb3344" roughness={0.23} />
-              </mesh>
-              <mesh
-                position={[x / 2, 0.34, 0]}
-                rotation={[0, 0, i === 0 ? -0.35 : 0.35]}
-              >
-                <cylinderGeometry args={[0.012, 0.016, 0.35, 8]} />
-                <meshStandardMaterial color="#617846" />
-              </mesh>
-            </group>
-          ))}
-        </>
-      )}
-      {item.kind === "candle" && (
-        <group
-          onClick={(e) => {
-            e.stopPropagation();
-            onBlow();
-          }}
-        >
-          <mesh position={[0, 0.27, 0]} castShadow>
-            <cylinderGeometry args={[0.045, 0.045, 0.54, 16]} />
-            <meshStandardMaterial color="#f5d786" />
-          </mesh>
-          <mesh position={[0, 0.56, 0]}>
-            <cylinderGeometry args={[0.008, 0.008, 0.05, 8]} />
-            <meshStandardMaterial color="#504536" />
-          </mesh>
-          {!blown && (
-            <mesh position={[0, 0.66, 0]} scale={[0.055, 0.12, 0.055]}>
-              <sphereGeometry args={[1, 16, 12]} />
-              <meshStandardMaterial
-                color="#ffbe57"
-                emissive="#ff9a22"
-                emissiveIntensity={2}
-              />
-            </mesh>
-          )}
-        </group>
-      )}
-      {item.kind === "heart" && (
-        <group rotation={[-Math.PI / 2, 0, 0]}>
-          {[-0.1, 0.1].map((x) => (
-            <mesh key={x} position={[x, 0.04, 0.09]}>
-              <sphereGeometry args={[0.14, 16, 12]} />
-              <meshStandardMaterial color="#d96886" />
-            </mesh>
-          ))}
-          <mesh position={[0, -0.1, 0.09]} rotation={[0, 0, Math.PI]}>
-            <coneGeometry args={[0.235, 0.34, 3]} />
-            <meshStandardMaterial color="#d96886" />
-          </mesh>
-        </group>
-      )}
     </group>
   );
 }
@@ -509,29 +496,35 @@ function Scene(props: CakeViewer3DProps) {
             );
           },
         )}
-      <Label
-        text={state.lettering}
-        position={[0, 0.653, 0.12]}
-        width={1.6}
-        height={0.9}
-        ink="#9f4b64"
-        size={state.lettering.length > 16 ? 95 : 150}
-      />
-      <Label
-        text={state.message}
-        position={[0, -0.088, 1.17]}
-        width={2.35}
-        height={0.23}
-        ink="#8a806f"
-        size={65}
-      />
-      {state.strokes.map((s) => (
-        <Cream key={s.id} stroke={s} />
-      ))}
-      {draft && <Cream stroke={draft} />}
-      {state.toppings.map((t) => (
-        <Topping key={t.id} item={t} blown={blown} onBlow={onBlow} />
-      ))}
+      <group visible={open}>
+        <Lettering3D state={state} onError={onNotice} />
+        <Label
+          text={state.message}
+          position={[
+            0,
+            -0.088,
+            state.letteringPosition === "board" ? -1.17 : 1.17,
+          ]}
+          width={2.35}
+          height={0.23}
+          ink="#8a806f"
+          size={65}
+        />
+        {state.strokes.map((s) => (
+          <Cream key={s.id} stroke={s} />
+        ))}
+        {draft && <Cream stroke={draft} />}
+        {state.toppings.map((t) => (
+          <ToppingMesh key={t.id} item={t} />
+        ))}
+        <Candles3D
+          config={state.candles}
+          blown={blown}
+          interactive={mode === "rotate" && open}
+          onBlow={onBlow}
+          onError={onNotice}
+        />
+      </group>
       <Lid open={open} />
       <OrbitControls
         makeDefault

@@ -1,4 +1,17 @@
-import { parseCake3DState, type Cake3DState } from "./cake3d";
+import {
+  parseCake3DState,
+  parseCandles,
+  toppingPresets,
+  type Cake3DState,
+  type CandleConfig,
+  type ToppingKind,
+} from "./cake3d";
+import { isLetteringFont, type LetteringFont } from "./lettering-fonts";
+import {
+  isLetteringColor,
+  isLetteringPosition,
+  type LetteringPosition,
+} from "./lettering-style";
 export const colors = [
   { name: "딸기 우유", value: "#f4b9c7" },
   { name: "바닐라 크림", value: "#f7e6b7" },
@@ -10,8 +23,12 @@ export const colors = [
 export type Cake = {
   color: string;
   cream: "shell" | "pearl" | "none";
-  topping: "cherry" | "candle" | "heart";
+  topping: ToppingKind | "candle" | "none";
+  candles?: CandleConfig;
   lettering: string;
+  letteringFont?: LetteringFont;
+  letteringColor?: string;
+  letteringPosition?: LetteringPosition;
   message: string;
   recipient: string;
   design3D?: Cake3DState;
@@ -39,18 +56,36 @@ export function decodeCake(value: string): Cake | null {
     if (
       !colors.some((x) => x.value === c.color) ||
       !["shell", "pearl", "none"].includes(c.cream) ||
-      !["cherry", "candle", "heart"].includes(c.topping) ||
+      !(
+        c.topping === "candle" ||
+        c.topping === "none" ||
+        toppingPresets.some((p) => p.kind === c.topping)
+      ) ||
       typeof c.lettering !== "string" ||
       typeof c.message !== "string" ||
-      typeof c.recipient !== "string"
+      typeof c.recipient !== "string" ||
+      (c.letteringFont !== undefined && !isLetteringFont(c.letteringFont)) ||
+      (c.letteringColor !== undefined && !isLetteringColor(c.letteringColor)) ||
+      (c.letteringPosition !== undefined &&
+        !isLetteringPosition(c.letteringPosition))
     )
       return null;
     return {
       color: c.color,
       cream: c.cream,
       topping: c.topping,
+      ...(c.candles !== undefined ? { candles: parseCandles(c.candles) } : {}),
       ...(c.design3D ? { design3D: parseCake3DState(c.design3D) } : {}),
       lettering: c.lettering.slice(0, 30),
+      ...(c.letteringColor !== undefined
+        ? { letteringColor: c.letteringColor }
+        : {}),
+      ...(c.letteringPosition !== undefined
+        ? { letteringPosition: c.letteringPosition }
+        : {}),
+      ...(c.letteringFont !== undefined
+        ? { letteringFont: c.letteringFont }
+        : {}),
       message: c.message.slice(0, 100),
       recipient: c.recipient.slice(0, 20),
     };
