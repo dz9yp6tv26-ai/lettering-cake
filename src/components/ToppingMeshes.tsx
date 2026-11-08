@@ -56,7 +56,17 @@ function StrawberrySeeds() {
     </instancedMesh>
   );
 }
-export default function ToppingMesh({ item }: { item: Topping3D }) {
+export default function ToppingMesh({
+  item,
+  selected = false,
+  selectable = false,
+  onSelect,
+}: {
+  item: Topping3D;
+  selected?: boolean;
+  selectable?: boolean;
+  onSelect?: (id: string) => void;
+}) {
   const assets = useMemo(() => {
     switch (item.kind) {
       case "heart":
@@ -85,7 +95,29 @@ export default function ToppingMesh({ item }: { item: Topping3D }) {
       position={item.position}
       rotation={item.rotation}
       scale={item.scale}
+      onPointerDown={(event) => {
+        if (!selectable) return;
+        event.stopPropagation();
+        onSelect?.(item.id);
+      }}
     >
+      {selected && selectable && (
+        <mesh
+          position={[0, 0.012, 0]}
+          rotation={[-Math.PI / 2, 0, 0]}
+          raycast={() => null}
+          renderOrder={20}
+        >
+          <ringGeometry args={[0.25, 0.31, 48]} />
+          <meshBasicMaterial
+            color="#b75f7c"
+            transparent
+            opacity={0.9}
+            depthTest={false}
+            side={THREE.DoubleSide}
+          />
+        </mesh>
+      )}
       {(item.kind === "heart" || item.kind === "star") && (
         <mesh geometry={assets[0]} castShadow receiveShadow>
           <meshStandardMaterial

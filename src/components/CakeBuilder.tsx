@@ -379,6 +379,11 @@ export default function CakeBuilder() {
                     ),
                   )
                 }
+                selectedToppingId={selectedToppingId}
+                onSelectTopping={(id) => {
+                  setSelectedToppingId(id);
+                  setNotice("선택했어요. 케이크 윗면의 원하는 자리를 눌러 주세요.");
+                }}
                 onNotice={setNotice}
                 open={open}
                 blown={blown}

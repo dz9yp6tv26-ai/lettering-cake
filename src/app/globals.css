@@ -1336,6 +1336,10 @@ textarea {
 .cake-viewer-3d.piping {
   cursor: crosshair;
 }
+
+.cake-viewer-3d.placing {
+  cursor: pointer;
+}
 .capture-area {
   min-width: 0;
   width: 100%;

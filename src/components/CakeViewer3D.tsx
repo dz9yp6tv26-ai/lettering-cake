@@ -35,6 +35,8 @@ export type CakeViewer3DProps = {
   creamRadius: number;
   onStroke: (stroke: CreamStroke) => void;
   onPlace: (point: Vec3) => void;
+  selectedToppingId: string;
+  onSelectTopping: (id: string) => void;
   onOpen: () => void;
   onBlow: () => void;
   onNotice: (text: string) => void;
@@ -515,7 +517,13 @@ function Scene(props: CakeViewer3DProps) {
         ))}
         {draft && <Cream stroke={draft} />}
         {state.toppings.map((t) => (
-          <ToppingMesh key={t.id} item={t} />
+          <ToppingMesh
+            key={t.id}
+            item={t}
+            selectable={mode === "place"}
+            selected={mode === "place" && t.id === props.selectedToppingId}
+            onSelect={props.onSelectTopping}
+          />
         ))}
         <Candles3D
           config={state.candles}
@@ -543,7 +551,7 @@ function Scene(props: CakeViewer3DProps) {
 export default function CakeViewer3D(props: CakeViewer3DProps) {
   return (
     <div
-      className={`cake-viewer-3d ${props.mode === "pipe" ? "piping" : ""}`}
+      className={`cake-viewer-3d ${props.mode === "pipe" ? "piping" : ""} ${props.mode === "place" ? "placing" : ""}`}
       aria-label="3D 케이크 뷰어"
     >
       <WebGLBoundary>

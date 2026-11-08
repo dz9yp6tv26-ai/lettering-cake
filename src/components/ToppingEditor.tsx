@@ -59,14 +59,14 @@ export default function ToppingEditor({
       <button
         type="button"
         className="move-topping-button"
-        disabled={!active}
+        disabled={!toppings.length}
         onClick={onPlace}
       >
-        선택한 토핑 옮기기
+        화면에서 토핑 선택해 옮기기
       </button>
       <p>
-        최대 12개 · 종류를 누르면 선택한 토핑이 바뀝니다. 옮기기를 누른 뒤
-        케이크 윗면을 터치하세요.
+        최대 12개 · 옮기기를 누른 뒤 3D 화면에서 토핑 하나를 선택하고,
+        케이크 윗면의 원하는 자리를 터치하세요.
       </p>
     </fieldset>
   );
