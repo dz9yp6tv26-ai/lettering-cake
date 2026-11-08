@@ -1,8 +1,10 @@
 # little wish · 온라인 레터링 케이크
 
-레터링 단계에서 기본 한글 서체와 영문 Cake 폰트 Pacifico, Fredoka, Cherry Swash, Shrikhand를 선택할 수 있습니다. 레터링은 폰트 윤곽선을 ExtrudeGeometry로 만든 실제 3D 메쉬이며, 영문 폰트가 지원하지 않는 한글은 Google Fonts 나눔손글씨 펜으로 입체 표현합니다.
+레터링 문구 입력 아래의 한글/English 탭에서 한글 4종(Gaegu, Jua, Gowun Batang, Noto Sans KR)과 영문 Cake 폰트 4종(Pacifico, Fredoka, Cherry Swash, Shrikhand)을 선택할 수 있습니다. 새 케이크는 `handwrite`(개구체)로 시작합니다. 레터링은 폰트 윤곽선을 ExtrudeGeometry로 만든 실제 3D 메쉬이며, 영문 폰트가 지원하지 않는 한글은 Google Fonts 나눔손글씨 펜으로 입체 표현합니다.
 
-Google Fonts CDN이 개발 환경에서 차단되어, [Google Fonts 공식 저장소](https://github.com/google/fonts)의 `ofl/pacifico`, `ofl/fredoka`, `ofl/cherryswash`, `ofl/shrikhand`, `ofl/nanumpenscript` 배포본과 OFL 라이선스를 저장소에 포함했습니다. UI 폰트는 `next/font/local`, 메쉬 윤곽선은 `public/fonts`의 같은 배포본을 opentype.js로 읽습니다. 외부 CDN에 의존하지 않습니다. 한글 폰트는 약 3.1MB이며, 메쉬 파서는 요청한 글리프만 사용하고 파일 요청을 캐시합니다. 폰트에 없는 이모지/문자는 `?`로 표시됩니다.
+Google Fonts CDN이 개발 환경에서 차단되어, [Google Fonts 공식 저장소](https://github.com/google/fonts)의 배포본과 OFL 라이선스를 저장소에 포함했습니다. 신규 한글 폰트 원본은 `ofl/gaegu`, `ofl/jua`, `ofl/gowunbatang`, `ofl/notosanskr`이며, Noto Sans KR은 FontTools로 가변 원본의 `wght=400`을 고정했습니다. UI 폰트는 `next/font/local`, 메쉬 윤곽선은 `public/fonts`의 같은 배포본을 opentype.js로 읽습니다. 폰트는 선택 시 로드하고 메쉬 파싱 결과를 캐시합니다. 케이크 판 Canvas는 `document.fonts.load()` 완료 후 그리며 `texture.needsUpdate`로 갱신합니다. 최초 다운로드 시간은 연결과 파일 크기에 따라 달라지므로 0.1초 반영을 보장하지 않습니다. 폰트에 없는 이모지/문자는 `?`로 표시됩니다.
+
+`Cake3DState.fontFamily`와 공유 카드의 같은 필드에 폰트 ID를 저장합니다. 새 필드가 있으면 기존 `letteringFont`보다 우선합니다. 필드가 없는 이전 링크는 기존 `letteringFont` 또는 나눔손글씨 펜(`classic`)을 유지하며, 알 수 없는 ID는 파서에서 거부합니다. 두 필드 모두 허용 목록을 검증합니다.
 
 `letteringFont`는 `classic | pacifico | fredoka | cherry | shrikhand` 중 하나인 선택 필드이며, Cake와 Cake3DState/공유 링크/JSON에 보존됩니다. 필드가 없는 기존 버전 1 데이터는 `classic`으로 표시합니다. 글자 윤곽선의 경계·줄 수·커닝을 고려해 가로와 세로를 같은 비율로 조정하고, 두께는 0.03으로 유지합니다.
 

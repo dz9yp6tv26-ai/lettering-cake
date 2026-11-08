@@ -18,7 +18,7 @@ import * as THREE from "three";
 import Lettering3D from "./Lettering3D";
 import ToppingMesh from "./ToppingMeshes";
 import Candles3D from "./Candles3D";
-import { letteringFont, type LetteringFont } from "@/lib/lettering-fonts";
+import { letteringFont, resolveLetteringFont, type LetteringFont } from "@/lib/lettering-fonts";
 import {
   MAX_POINTS,
   MAX_STROKES,
@@ -128,10 +128,9 @@ function useLabelTexture(
       );
       texture.needsUpdate = true;
     }
-    draw();
     // CanvasTexture does not repaint itself when a webfont finishes loading.
     document.fonts
-      .load(descriptor(size), "Happy birthday")
+      .load(descriptor(size), text || "축하해 Happy birthday")
       .then(draw)
       .catch(() => {
         /* Keep the readable system fallback. */
@@ -511,6 +510,7 @@ function Scene(props: CakeViewer3DProps) {
           height={0.23}
           ink="#8a806f"
           size={65}
+          fontId={resolveLetteringFont(state)}
         />
         {state.strokes.map((s) => (
           <Cream key={s.id} stroke={s} />

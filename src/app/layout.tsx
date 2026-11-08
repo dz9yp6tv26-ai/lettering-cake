@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 // Official Google Fonts distributions; bundled for reliable, private font loading.
+const gaegu = localFont({ src: "../../public/fonts/Gaegu-Regular.ttf", variable: "--font-gaegu", display: "swap", weight: "400", preload: false });
+const jua = localFont({ src: "../../public/fonts/Jua-Regular.ttf", variable: "--font-jua", display: "swap", weight: "400", preload: false });
+const gowun = localFont({ src: "../../public/fonts/GowunBatang-Regular.ttf", variable: "--font-gowun", display: "swap", weight: "400", preload: false });
+const noto = localFont({ src: "../../public/fonts/NotoSansKR-Regular.ttf", variable: "--font-noto", display: "swap", weight: "400", preload: false });
 const nanum = localFont({
   src: "../../public/fonts/NanumPenScript-Regular.ttf",
   variable: "--font-nanum",
@@ -42,7 +46,7 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body
-        className={`${nanum.variable} ${pacifico.variable} ${fredoka.variable} ${cherry.variable} ${shrikhand.variable}`}
+        className={`${gaegu.variable} ${jua.variable} ${gowun.variable} ${noto.variable} ${nanum.variable} ${pacifico.variable} ${fredoka.variable} ${cherry.variable} ${shrikhand.variable}`}
       >
         {children}
       </body>

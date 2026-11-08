@@ -7,7 +7,7 @@ import {
   buildLetteringGeometry,
   meshFontFiles,
 } from "../src/lib/lettering-geometry";
-import { letteringFonts } from "../src/lib/lettering-fonts";
+import { letteringFonts, koreanFontIds } from "../src/lib/lettering-fonts";
 import { letteringPositions } from "../src/lib/lettering-style";
 const load = (file: string) => {
   const bytes = readFileSync(`public${file}`);
@@ -23,6 +23,9 @@ test("all fonts create actual beveled extrusion; Korean fallback has real outlin
   assert(fallback.charToGlyphIndex("축") > 0);
   for (const item of letteringFonts) {
     const font = load(meshFontFiles[item.id]);
+    if (koreanFontIds.includes(item.id)) {
+      for (const char of "생일축하해") assert(font.charToGlyphIndex(char) > 0, `${item.id} has ${char}`);
+    }
     const geometry = buildLetteringGeometry(
       "Happy 축하",
       font,

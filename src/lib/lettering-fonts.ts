@@ -1,5 +1,21 @@
 export const letteringFonts = [
   {
+    id: "handwrite", label: "손글씨(개구)", family: "var(--font-gaegu), cursive",
+    variable: "--font-gaegu", weight: 400, style: "normal", spacing: 0,
+  },
+  {
+    id: "round", label: "동글체(주아)", family: "var(--font-jua), sans-serif",
+    variable: "--font-jua", weight: 400, style: "normal", spacing: 0,
+  },
+  {
+    id: "serif", label: "세리프(고운바탕)", family: "var(--font-gowun), serif",
+    variable: "--font-gowun", weight: 400, style: "normal", spacing: 0,
+  },
+  {
+    id: "sans", label: "모던(노토산스)", family: "var(--font-noto), sans-serif",
+    variable: "--font-noto", weight: 400, style: "normal", spacing: 0,
+  },
+  {
     id: "classic",
     label: "기본 · 한글",
     family: "var(--font-nanum), cursive",
@@ -46,6 +62,11 @@ export const letteringFonts = [
   },
 ] as const;
 export type LetteringFont = (typeof letteringFonts)[number]["id"];
+export const koreanFontIds: readonly LetteringFont[] = ["handwrite", "round", "serif", "sans"];
+export function resolveLetteringFont(state: { fontFamily?: LetteringFont; letteringFont?: LetteringFont }): LetteringFont {
+  // Missing fields belong to historical links that used Nanum Pen Script.
+  return state.fontFamily ?? state.letteringFont ?? "classic";
+}
 export function isLetteringFont(value: unknown): value is LetteringFont {
   return letteringFonts.some((font) => font.id === value);
 }

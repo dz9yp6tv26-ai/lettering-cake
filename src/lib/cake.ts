@@ -27,6 +27,7 @@ export type Cake = {
   candles?: CandleConfig;
   lettering: string;
   letteringFont?: LetteringFont;
+  fontFamily?: LetteringFont;
   letteringColor?: string;
   letteringPosition?: LetteringPosition;
   message: string;
@@ -38,6 +39,7 @@ export const initialCake: Cake = {
   cream: "shell",
   topping: "cherry",
   lettering: "happy\nbirthday",
+  fontFamily: "handwrite",
   message: "너의 모든 날이 오늘처럼 달콤하길 ♡",
   recipient: "",
 };
@@ -65,6 +67,7 @@ export function decodeCake(value: string): Cake | null {
       typeof c.message !== "string" ||
       typeof c.recipient !== "string" ||
       (c.letteringFont !== undefined && !isLetteringFont(c.letteringFont)) ||
+      (c.fontFamily !== undefined && !isLetteringFont(c.fontFamily)) ||
       (c.letteringColor !== undefined && !isLetteringColor(c.letteringColor)) ||
       (c.letteringPosition !== undefined &&
         !isLetteringPosition(c.letteringPosition))
@@ -77,6 +80,7 @@ export function decodeCake(value: string): Cake | null {
       ...(c.candles !== undefined ? { candles: parseCandles(c.candles) } : {}),
       ...(c.design3D ? { design3D: parseCake3DState(c.design3D) } : {}),
       lettering: c.lettering.slice(0, 30),
+      ...(c.fontFamily !== undefined ? { fontFamily: c.fontFamily } : {}),
       ...(c.letteringColor !== undefined
         ? { letteringColor: c.letteringColor }
         : {}),

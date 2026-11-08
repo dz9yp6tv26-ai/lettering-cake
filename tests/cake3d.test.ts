@@ -7,7 +7,7 @@ import {
   type Cake3DState,
 } from "../src/lib/cake3d";
 import { initialCake, encodeCake, decodeCake } from "../src/lib/cake";
-import { letteringFonts } from "../src/lib/lettering-fonts";
+import { letteringFonts, resolveLetteringFont } from "../src/lib/lettering-fonts";
 import {
   letteringColors,
   letteringPositions,
@@ -78,6 +78,23 @@ test("all lettering fonts survive JSON and gift sharing, unknown font IDs are re
     ),
     null,
   );
+});
+test("fontFamily survives JSON and gifts, rejects invalid IDs, and respects legacy fonts", () => {
+  for (const font of letteringFonts) {
+    const design = { ...state, fontFamily: font.id };
+    assert.equal(JSON.parse(serializeCake3DState(design)).fontFamily, font.id);
+    const gift = decodeCake(encodeCake({ ...initialCake, fontFamily: font.id, design3D: design }))!;
+    assert.equal(gift.fontFamily, font.id);
+    assert.equal(gift.design3D!.fontFamily, font.id);
+  }
+  for (const fontFamily of ["unknown", "var(--evil)", null, {}, 0]) {
+    assert.throws(() => parseCake3DState({ ...state, fontFamily }));
+    assert.equal(decodeCake(encodeCake({ ...initialCake, fontFamily } as never)), null);
+  }
+  assert.equal(resolveLetteringFont({ letteringFont: "pacifico" }), "pacifico");
+  assert.equal(resolveLetteringFont({ fontFamily: "round", letteringFont: "pacifico" }), "round");
+  assert.equal(resolveLetteringFont({}), "classic");
+  assert.equal(initialCake.fontFamily, "handwrite");
 });
 test("lettering colors and positions survive JSON and gift links; malformed values fail", () => {
   for (const color of letteringColors)

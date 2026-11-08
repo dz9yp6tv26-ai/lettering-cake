@@ -17,7 +17,7 @@ import {
 import { toPng } from "html-to-image";
 import CandleEditor from "./CandleEditor";
 import ToppingEditor from "./ToppingEditor";
-import { letteringFonts } from "@/lib/lettering-fonts";
+import { letteringFonts, koreanFontIds, resolveLetteringFont } from "@/lib/lettering-fonts";
 import {
   letteringColors,
   letteringPositions,
@@ -62,6 +62,7 @@ export default function CakeBuilder() {
   const [mode, setMode] = useState<"rotate" | "pipe" | "place">("rotate");
   const [creamColor, setCreamColor] = useState("#fff7e3");
   const [creamRadius, setCreamRadius] = useState(0.035);
+  const [fontGroup, setFontGroup] = useState<"ko" | "en">("ko");
   const state3D = useMemo<Cake3DState>(
     () => ({
       schemaVersion: 1,
@@ -69,6 +70,7 @@ export default function CakeBuilder() {
       cake: { radius: 1, height: 0.65, color: cake.color, cream: cake.cream },
       lettering: cake.lettering,
       letteringFont: cake.letteringFont ?? "classic",
+      fontFamily: resolveLetteringFont(cake),
       letteringColor: cake.letteringColor ?? DEFAULT_LETTERING_COLOR,
       letteringPosition: cake.letteringPosition ?? DEFAULT_LETTERING_POSITION,
       message: cake.message,
@@ -109,6 +111,7 @@ export default function CakeBuilder() {
                 cream: data.design3D.cake.cream,
                 lettering: data.design3D.lettering,
                 letteringFont: data.design3D.letteringFont ?? "classic",
+                fontFamily: resolveLetteringFont(data.design3D),
                 letteringColor:
                   data.design3D.letteringColor ?? DEFAULT_LETTERING_COLOR,
                 letteringPosition:
@@ -131,6 +134,7 @@ export default function CakeBuilder() {
             },
         );
         setMode("rotate");
+        setFontGroup(koreanFontIds.includes(resolveLetteringFont(data.design3D ?? data)) || resolveLetteringFont(data.design3D ?? data) === "classic" ? "ko" : "en");
         setReceiver(true);
         setOpen(false);
         setBlown(false);
@@ -625,17 +629,32 @@ export default function CakeBuilder() {
                             setOpen(true);
                           }}
                         />
+                        <label className="input-label" htmlFor="lettering">
+                          케이크 위 레터링 <span>{cake.lettering.length}/30</span>
+                        </label>
+                        <textarea
+                          id="lettering"
+                          maxLength={30}
+                          rows={2}
+                          value={cake.lettering}
+                          onChange={(e) => update("lettering", e.target.value)}
+                          placeholder="happy birthday"
+                        />
                         <fieldset className="lettering-font-picker">
                           <legend>레터링 폰트</legend>
+                          <div className="font-group-tabs" role="group" aria-label="폰트 언어">
+                            <button type="button" aria-pressed={fontGroup === "ko"} onClick={() => setFontGroup("ko")}>한글 폰트</button>
+                            <button type="button" aria-pressed={fontGroup === "en"} onClick={() => setFontGroup("en")}>English Fonts</button>
+                          </div>
                           <div className="font-chips">
-                            {letteringFonts.map((font) => (
+                            {letteringFonts.filter((font) => font.id !== "classic" && (fontGroup === "ko" ? koreanFontIds.includes(font.id) : !koreanFontIds.includes(font.id))).map((font) => (
                               <button
                                 type="button"
                                 key={font.id}
                                 aria-pressed={
-                                  (cake.letteringFont ?? "classic") === font.id
+                                  resolveLetteringFont(cake) === font.id
                                 }
-                                onClick={() => update("letteringFont", font.id)}
+                                onClick={() => setCake((previous) => ({ ...previous, fontFamily: font.id, letteringFont: font.id }))}
                                 style={{
                                   fontFamily: font.family,
                                   fontWeight: font.weight,
@@ -646,10 +665,7 @@ export default function CakeBuilder() {
                             ))}
                           </div>
                           <p>
-                            영문 Cake 폰트 · Pacifico / Fredoka / Cherry Swash /
-                            Shrikhand
-                            <br />
-                            한글은 나눔손글씨 펜 서체로 입체 표현됩니다.
+                            {resolveLetteringFont(cake) === "classic" ? "이전 선물의 나눔손글씨 펜 서체를 유지하고 있어요." : "선택한 서체로 입체 글자와 케이크 판 문구가 바뀝니다."}
                           </p>
                         </fieldset>
                         <fieldset className="lettering-style-picker">
@@ -707,18 +723,6 @@ export default function CakeBuilder() {
                             공백으로 이어집니다.
                           </p>
                         </fieldset>
-                        <label className="input-label" htmlFor="lettering">
-                          케이크 위 레터링{" "}
-                          <span>{cake.lettering.length}/30</span>
-                        </label>
-                        <textarea
-                          id="lettering"
-                          maxLength={30}
-                          rows={2}
-                          value={cake.lettering}
-                          onChange={(e) => update("lettering", e.target.value)}
-                          placeholder="happy birthday"
-                        />
                         <label className="input-label" htmlFor="message">
                           케이크 판에 남기는 마음{" "}
                           <span>{cake.message.length}/100</span>

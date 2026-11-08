@@ -245,6 +245,26 @@
   flex-wrap: wrap;
   gap: 8px;
 }
+.font-group-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  background: #f2eee8;
+}
+.font-group-tabs button {
+  flex: 1;
+  min-height: 44px;
+  border-radius: 9px;
+  font-size: 14px;
+  color: #706760;
+}
+.font-group-tabs button[aria-pressed="true"] {
+  background: #f7dce6;
+  color: #82475d;
+  box-shadow: 0 1px 4px #76584915;
+}
 .font-chips button {
   border: 1px solid #d9dfcf;
   border-radius: 9px;

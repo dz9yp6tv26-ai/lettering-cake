@@ -146,6 +146,7 @@ export type Cake3DState = {
   };
   lettering: string;
   letteringFont?: LetteringFont;
+  fontFamily?: LetteringFont;
   letteringColor?: string;
   letteringPosition?: LetteringPosition;
   message: string;
@@ -181,6 +182,7 @@ export function parseCake3DState(input: unknown): Cake3DState {
     typeof s.lettering !== "string" ||
     s.lettering.length > 30 ||
     (s.letteringFont !== undefined && !isLetteringFont(s.letteringFont)) ||
+    (s.fontFamily !== undefined && !isLetteringFont(s.fontFamily)) ||
     (s.letteringColor !== undefined && !isLetteringColor(s.letteringColor)) ||
     (s.letteringPosition !== undefined &&
       !isLetteringPosition(s.letteringPosition)) ||
@@ -270,6 +272,7 @@ export function parseCake3DState(input: unknown): Cake3DState {
     coordinateSystem: "cake-local-y-up",
     cake: { radius: 1, height: 0.65, color: s.cake.color, cream: s.cake.cream },
     lettering: s.lettering,
+    ...(s.fontFamily !== undefined ? { fontFamily: s.fontFamily } : {}),
     ...(s.letteringColor !== undefined
       ? { letteringColor: s.letteringColor }
       : {}),

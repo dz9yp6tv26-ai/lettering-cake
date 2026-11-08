@@ -4,6 +4,10 @@ import type { LetteringFont } from "./lettering-fonts";
 import type { LetteringPosition } from "./lettering-style";
 
 export const meshFontFiles: Record<LetteringFont, string> = {
+  handwrite: "/fonts/Gaegu-Regular.ttf",
+  round: "/fonts/Jua-Regular.ttf",
+  serif: "/fonts/GowunBatang-Regular.ttf",
+  sans: "/fonts/NotoSansKR-Regular.ttf",
   classic: "/fonts/NanumPenScript-Regular.ttf",
   pacifico: "/fonts/Pacifico-Regular.ttf",
   fredoka: "/fonts/Fredoka-Variable.ttf",

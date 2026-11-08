@@ -10,6 +10,7 @@ import {
   DEFAULT_LETTERING_POSITION,
 } from "@/lib/lettering-style";
 import type { Cake3DState } from "@/lib/cake3d";
+import { resolveLetteringFont } from "@/lib/lettering-fonts";
 
 const cache = new Map<string, Promise<Font>>();
 function loadFont(url: string) {
@@ -37,7 +38,7 @@ export default function Lettering3D({
   onError: (message: string) => void;
 }) {
   const text = state.lettering;
-  const fontId = state.letteringFont ?? "classic";
+  const fontId = resolveLetteringFont(state);
   const [faces, setFaces] = useState<{
     key: string;
     primary: Font;
